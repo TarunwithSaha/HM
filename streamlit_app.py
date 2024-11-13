@@ -15,6 +15,10 @@ from datetime import datetime# this will import the datetime module for the stre
 #also installed wkhtmltopdf
 from keras import preprocessing
 from keras import applications
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 
 #<------------------------------------------------------->
 
@@ -28,11 +32,40 @@ with st.sidebar:
                           ["Data Analysis","Pneumonia Prediction","Diabetes Prediction"],default_index=0)
 #<------------------------------------------------------->
 
+#creating the ANN_Model class
+#Now we are creating our model with the help of Pytorch
+#First thing for this is to create a class
+#for an ANN we require input features , hidden layers , output layers
+class ANN_Model(nn.Module):#here the class inherited the nn.Module
+    #here we will create the functions
+    def __init__(self,input_features=8,hidden1=20,hidden2=20,out_features=2):
+      #here we are storing 8 as the value for the input features and 20 nodes for each hidden layer
+      #and 2 nodes for the output layer
+      #here we will be using 'categorical cross entropy ' so that we can see how the probability
+      #values are coming up
+        super().__init__()#this is written to inherit the parent class ANN_Model
+        #now below is the fully connected layer
 
+        #the input layer and the first hidden layer will be constituting the fully connected layer
+        #in order to create a fully connected layer we will be creating a dense layer
+        self.f_connected1=nn.Linear(input_features,hidden1) #this is the first fully connected layer
+        self.f_connected2=nn.Linear(hidden1,hidden2)#second fully connected layer
+        self.out=nn.Linear(hidden2,out_features)
+    def forward(self,x):#this is for forward propogation
+    #the parameter x will drag the "Gradient Descent" and all the "Backpropogation"
+        x=F.relu(self.f_connected1(x)) #here 'x' in the parameter of 'self.f_connected1(x)' is
+        #basically the all the information related to that layer
+        x=F.relu(self.f_connected2(x))
+        x=self.out(x)
+        return x
+
+#<------------------------------------------------------->
 
 
 #Loading the saved models
 model = pickle.load(open("model_pickle",'rb'))
+# m1=pickle.load(open("model1.pkl",'rb'))
+m1 = torch.load('diabetes.pt')
 #<------------------------------------------------------->
 
 
@@ -198,3 +231,47 @@ if(selected =="Pneumonia Prediction"):
             st.write("Normal")
         else:
             st.write("Pneumonia Detected")
+
+
+#<------------------------------------------------------->
+
+#Diabetes Prediction Page
+
+if(selected=="Diabetes Prediction"):
+    #setting the title
+    st.title("Diabetes Prediction")
+   
+
+    #below are the input fields
+    p=st.number_input("Number of Pregnancies",value=None,placeholder="Type a Number",key='1')
+    g=st.number_input("Glucose Level",value=None,placeholder="Type a Number",key='2')
+    b=st.number_input("Blood Pressure Level",value=None,placeholder="Type a Number",key='3')
+    s=st.number_input("Skin Thickness",value=None,placeholder="Type a Number",key='4')
+    i=st.number_input("Insulin",value=None,placeholder="Type a Number",key='5')
+    bm=st.number_input("BMI",value=None,placeholder="Type a Number",key='6')
+    d=st.number_input("Diabetes Pedigree Function",value=None,placeholder="Type a Number",key='7')
+    a=st.number_input("Age",value=None,placeholder="Type a Number",key='8')
+    #All these number_inputs should have different key values
+
+
+
+    #Now creating the submit button
+    if st.button("Submit"):
+        l=[p,g,b,s,i,bm,d,a] #All the entered values are inserted in a list
+        #Converting the list l into a tensor
+        new_data= torch.tensor(l)
+        #now making the prediction on the new_data
+        prediction = m1(new_data).argmax().item() #this prediciton will contain the index of the class with the maximum value
+        #clearing the values in the input field
+        # st.session_state['1']=""
+        # st.session_state['2']=""
+        # st.session_state['3']=""
+        # st.session_state['4']=""
+        # st.session_state['5']=""
+        # st.session_state['6']=""
+        # st.session_state['7']=""
+        # st.session_state['8']=""
+        if (prediction==1):
+            st.write("The person is Diabetic")
+        else:
+            st.write("The person is Non-Diabetic")
